@@ -39,5 +39,5 @@
 ## 🛠 Установка
 1. Клонировать репозиторий:
    ```bash
-   git clone https://github.com/<username>/ToDoListOson.git
+   git clone https://github.com/<NurilloUmar>/ToDoListOson.git
 

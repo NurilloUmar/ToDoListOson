@@ -17,12 +17,17 @@ class HomeVC: UIViewController {
     var currentPage = 0
     let pageSize = 20
     var isLoading = false
+    
+    private let spinner: UIActivityIndicatorView = {
+        let sp = UIActivityIndicatorView(style: .medium)
+        sp.hidesWhenStopped = true
+        return sp
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setTableView()
         setNavigationBar()
-        
         syncData()
     }
     
@@ -91,8 +96,6 @@ class HomeVC: UIViewController {
             print("❌ Fetch error:", error)
         }
     }
-
-    
 }
 
 extension HomeVC: UITableViewDelegate, UITableViewDataSource, UISearchResultsUpdating {
@@ -113,6 +116,16 @@ extension HomeVC: UITableViewDelegate, UITableViewDataSource, UISearchResultsUpd
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(HomeTVC.self, forCellReuseIdentifier: "HomeTVC")
+        
+        tableView.separatorStyle = .none
+        tableView.rowHeight = 100
+        tableView.estimatedRowHeight = 100
+        tableView.backgroundColor = .systemBackground
+        
+        // 🔥 Table footerga spinner qo‘shamiz
+        tableView.tableFooterView = spinner
+        spinner.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 50)
+        
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
         
@@ -136,7 +149,7 @@ extension HomeVC: UITableViewDelegate, UITableViewDataSource, UISearchResultsUpd
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "HomeTVC", for: indexPath) as! HomeTVC
         let item = pagedData[indexPath.row]
-        cell.accessoryType = item.completed ?? false ? .checkmark : .none
+        cell.accessoryType = .none
         cell.setCell(item: item)
         return cell
     }
@@ -148,27 +161,32 @@ extension HomeVC: UITableViewDelegate, UITableViewDataSource, UISearchResultsUpd
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-            let detailVC = DetailVC()
-            let item = pagedData[indexPath.row]
-            detailVC.item = item
-            navigationController?.pushViewController(detailVC, animated: true)
-
+        let detailVC = DetailVC()
+        let item = pagedData[indexPath.row]
+        detailVC.item = item
+        navigationController?.pushViewController(detailVC, animated: true)
     }
     
+    // 🔥 Loader bilan pagination
     func loadNextPage() {
-        let source = combined
         guard !isLoading else { return }
         isLoading = true
+        spinner.startAnimating()
+        
+        let source = combined
         let start = currentPage * pageSize
         let end = min(start + pageSize, source.count)
         
-        if start < end {
-            let nextSlice = source[start..<end]
-            pagedData.append(contentsOf: nextSlice)
-            currentPage += 1
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            if start < end {
+                let nextSlice = source[start..<end]
+                self.pagedData.append(contentsOf: nextSlice)
+                self.currentPage += 1
+            }
+            
+            self.isLoading = false
+            self.spinner.stopAnimating()
+            self.tableView.reloadData()
         }
-        
-        isLoading = false
-        tableView.reloadData()
     }
 }
